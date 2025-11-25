@@ -46,7 +46,7 @@ if __name__ == "__main__":
         [
             transforms.Resize([155, 220], interpolation=InterpolationMode.BILINEAR),
             transforms.RandomInvert(p=1.0),
-            transforms.ToTensor(),
+            transforms.PILToTensor(),  # Preserves [0, 255] scale
             # Divide by stdev but don't subtract by a mean value
             transforms.Normalize(mean=0, std=stdev),
         ]
