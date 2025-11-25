@@ -38,20 +38,6 @@ def cedar_df(cedar_path, test_size=DEFAULT_TEST_SIZE):
     images_original = glob.glob(os.path.join(cedar_path, "full_org", "original*.png"))
     images_original = sorted(images_original)
 
-    # TODO ---------------------------------------------------------------------
-    # Calculate stdev of all images
-    PIL_images = [
-        # "L" is luminance (grayscale) mode
-        Image.open(path).convert("L")
-        for path in (images_forged + images_original)
-    ]
-    transformed_images = [TRANSFORMS(image) for image in PIL_images]
-    np_images = [np.array(image) for image in PIL_images]
-    pixels = np.concatenate([image.flatten() for image in np_images])
-
-    stdev = np.std(pixels)
-    # --------------------------------------------------------------------------
-
     forged_df = pd.DataFrame({"path": images_forged, "type": "forged"})
     forged_df["signer"] = forged_df["path"].str.extract(r"forgeries_(\d+)_").astype(int)
 
@@ -93,6 +79,20 @@ def cedar_df(cedar_path, test_size=DEFAULT_TEST_SIZE):
 
     cedar_df_train = cedar_df.iloc[train_idx]
     cedar_df_test = cedar_df.iloc[test_idx]
+
+    # TODO ---------------------------------------------------------------------
+    # Calculate stdev of all images
+    PIL_images = [
+        # "L" is luminance (grayscale) mode
+        Image.open(path).convert("L")
+        for path in cedar_df_train["path_first"].unique()
+    ]
+    transformed_images = [TRANSFORMS(image) for image in PIL_images]
+    np_images = [np.array(image) for image in PIL_images]
+    pixels = np.concatenate([image.flatten() for image in np_images])
+
+    stdev = np.std(pixels)
+    # --------------------------------------------------------------------------
 
     return cedar_df_train, cedar_df_test, stdev
 

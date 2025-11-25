@@ -19,8 +19,6 @@ parser.add_argument("--num-workers", type=int, default=15)
 parser.add_argument("--epochs", type=int, default=20)
 args = parser.parse_args()
 
-BATCH_SIZE = 16
-
 train_df, test_df, stdev = cedar_df(args.cedar_path)
 
 print(f"Loaded CEDAR dataset and calculated stdev to be {stdev}")
@@ -37,7 +35,7 @@ transform = transforms.Compose(
 
 train_dataset = CEDARDataset(train_df, transform)
 train_dataloader = DataLoader(
-    train_dataset, batch_size=BATCH_SIZE, num_workers=args.num_workers
+    train_dataset, batch_size=args.batch_size, num_workers=args.num_workers
 )
 
 model = SigNetSiamese()
