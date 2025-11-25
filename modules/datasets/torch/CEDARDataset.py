@@ -2,12 +2,12 @@
 
 import argparse
 import torch
-import torchvision.transforms as transforms
 
 from PIL import Image
 from torch.utils.data import Dataset
 
 from modules.datasets.helpers.cedar_df import cedar_df
+from modules.datasets.helpers.constants import TRANSFORMS_TRAIN
 
 
 class CEDARDataset(Dataset):
@@ -42,15 +42,5 @@ if __name__ == "__main__":
 
     print(f"Loaded CEDAR dataset and calculated stdev to be {stdev}")
 
-    transform = transforms.Compose(
-        [
-            transforms.Resize([155, 220], interpolation=InterpolationMode.BILINEAR),
-            transforms.RandomInvert(p=1.0),
-            transforms.PILToTensor(),  # Preserves [0, 255] scale
-            # Divide by stdev but don't subtract by a mean value
-            transforms.Normalize(mean=0, std=stdev),
-        ]
-    )
-
-    dataset = CEDARDataset(train_df, transform)
+    dataset = CEDARDataset(train_df, TRANSFORMS_TRAIN(stdev))
     print(dataset.__getitem__(0))

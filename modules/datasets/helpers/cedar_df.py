@@ -8,8 +8,9 @@ import torchvision.transforms as transforms
 
 from PIL import Image
 from sklearn.model_selection import GroupShuffleSplit
-from torchvision.transforms import InterpolationMode
 from tqdm import tqdm
+
+from modules.datasets.helpers.constants import TRANSFORMS_PRE
 
 """
 Download from https://www.cedar.buffalo.edu/NIJ/data/signatures.rar
@@ -23,10 +24,6 @@ Directory structure should look like this:
 
 DEFAULT_TEST_SIZE = 5 / 55  # 5 signers for testing, 55 - 5 = 50 for training
 RANDOM_STATE = 339
-TRANSFORMS = torch.nn.Sequential(
-    transforms.Resize([155, 220], interpolation=InterpolationMode.BILINEAR),
-    transforms.RandomInvert(p=1.0),
-)
 
 
 def cedar_df(cedar_path, test_size=DEFAULT_TEST_SIZE):
@@ -87,7 +84,7 @@ def cedar_df(cedar_path, test_size=DEFAULT_TEST_SIZE):
         Image.open(path).convert("L")
         for path in cedar_df_train["path_first"].unique()
     ]
-    transformed_images = [TRANSFORMS(image) for image in PIL_images]
+    transformed_images = [TRANSFORMS_PRE(image) for image in PIL_images]
     np_images = [np.array(image) for image in PIL_images]
     pixels = np.concatenate([image.flatten() for image in np_images])
 
