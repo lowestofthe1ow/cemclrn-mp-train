@@ -26,7 +26,10 @@ print(f"Loaded CEDAR dataset and calculated stdev to be {stdev}")
 
 train_dataset = CEDARDataset(train_df, TRANSFORMS_TRAIN(stdev))
 train_dataloader = DataLoader(
-    train_dataset, batch_size=args.batch_size, num_workers=args.num_workers
+    train_dataset,
+    batch_size=args.batch_size,
+    num_workers=args.num_workers,
+    shuffle=True,
 )
 
 model = SigNetSiamese()

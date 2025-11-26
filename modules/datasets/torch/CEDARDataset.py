@@ -26,6 +26,13 @@ class CEDARDataset(Dataset):
         x1 = self.transform(Image.open(data.path_first).convert("L"))
         x2 = self.transform(Image.open(data.path_second).convert("L"))
 
+        """
+        torch.set_printoptions(profile="full")
+        print(x1)
+        F.to_pil_image(x1 / torch.max(x1)).show()
+        quit()
+        """
+
         if data.type_first == "original" and data.type_second == "original":
             return x1, x2, 0
         elif data.type_first == "forged" and data.type_second == "original":
