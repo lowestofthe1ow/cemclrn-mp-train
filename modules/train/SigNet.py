@@ -4,8 +4,9 @@ import pytorch_lightning as pl
 import torch
 import torchvision.transforms as transforms
 
+from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.loggers import TensorBoardLogger
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, random_split
 from torchvision.transforms import InterpolationMode
 
 from modules.datasets.helpers.constants import TRANSFORMS_TRAIN
@@ -25,7 +26,13 @@ train_df, test_df, stdev = cedar_df(args.cedar_path)
 
 print(f"Loaded CEDAR dataset and calculated stdev to be {stdev}")
 
-train_dataset = CEDARDataset(train_df, TRANSFORMS_TRAIN(stdev))
+
+full_train_dataset = CEDARDataset(train_df, TRANSFORMS_TRAIN(stdev))
+
+TRAIN_COUNT = int(0.9 * len(full_train_dataset))
+VAL_COUNT = int(0.1 * len(full_train_dataset))
+train_dataset, val_dataset = random_split(full_train_dataset, [TRAIN_COUNT, VAL_COUNT])
+
 train_dataloader = DataLoader(
     train_dataset,
     batch_size=args.batch_size,
@@ -33,16 +40,27 @@ train_dataloader = DataLoader(
     shuffle=True,
 )
 
+val_dataloader = DataLoader(
+    val_dataset,
+    batch_size=args.batch_size,
+    num_workers=args.num_workers,
+)
+
 model = SigNetSiamese()
 
 os.makedirs("checkpoints", exist_ok=True)
 
 logger = TensorBoardLogger("tb_logs", name="cedar")
+
+
+early_stop_callback = EarlyStopping(monitor="val_loss", patience=3, mode="min")
+
 trainer = pl.Trainer(
     default_root_dir="checkpoints",
     logger=logger,
-    min_epochs=args.epochs,
-    max_epochs=args.epochs,
+    min_epochs=0,
+    max_epochs=100,
+    callbacks=[early_stop_callback],
 )
 
-trainer.fit(model, train_dataloader)
+trainer.fit(model, train_dataloader, val_dataloader)

@@ -47,6 +47,17 @@ class SigNetSiamese(pl.LightningModule):
         )
         return loss
 
+    def validation_step(self, batch, batch_idx):
+        x1, x2, y = batch
+        output1, output2 = self(x1, x2)
+        loss = contrastive_loss(output1, output2, y)[0]
+
+        # Log validation loss
+        self.log(
+            "val_loss", loss, on_step=True, on_epoch=True, prog_bar=True, logger=True
+        )
+        return loss
+
     # We skip defining validation_step for now, as we train with a fixed number of epochs instead.
 
     def configure_optimizers(self):
