@@ -1,6 +1,7 @@
 import argparse
 import os
 import pytorch_lightning as pl
+import torch
 import torchvision.transforms as transforms
 
 from pytorch_lightning.loggers import TensorBoardLogger
@@ -15,7 +16,7 @@ from modules.models.SigNetSiamese import SigNetSiamese
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--cedar-path", type=str, help="Path to CEDAR dataset folder")
-parser.add_argument("--batch-size", type=int, default=16)
+parser.add_argument("--batch-size", type=int, default=128)
 parser.add_argument("--num-workers", type=int, default=15)
 parser.add_argument("--epochs", type=int, default=20)
 args = parser.parse_args()
