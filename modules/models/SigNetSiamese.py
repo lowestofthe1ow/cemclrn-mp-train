@@ -17,11 +17,7 @@ SCHEDULER_MILESTONES = [14, 18]  # 70% and 90% of total epochs (20)
 # Values for α and β are not mentioned, so we use 1
 def contrastive_loss(output1, output2, y):
     euclidean_distance = F.pairwise_distance(output1, output2)
-<<<<<<< Updated upstream
     pos = (y) * torch.pow(euclidean_distance, 2)
-=======
-    pos = y * torch.pow(euclidean_distance, 2)
->>>>>>> Stashed changes
     neg = (1 - y) * torch.pow(torch.clamp(MARGIN - euclidean_distance, min=0.0), 2)
     contrastive_loss = torch.mean(pos + neg)
 
