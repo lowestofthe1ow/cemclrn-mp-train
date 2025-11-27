@@ -5,11 +5,11 @@ from modules.models.SigNetCNN import SigNetCNN
 
 MARGIN = 1
 LEARNING_RATE = 1e-4
-WEIGHT_DECAY = 0.0005
+WEIGHT_DECAY = 0.005
 MOMENTUM = 0.9
 FUZZY = 1e-8
 GAMMA = 0.1
-SCHEDULER_MILESTONES = [14, 18]  # 70% and 90% of total epochs (20)
+SCHEDULER_MILESTONES = [5, 10]  # 70% and 90% of total epochs (20)
 
 
 # See https://github.com/HarshSulakhe/siamesenetworks-pytorch/blob/master/loss.py

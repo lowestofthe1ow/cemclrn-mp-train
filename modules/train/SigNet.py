@@ -4,6 +4,7 @@ import pytorch_lightning as pl
 import torch
 import torchvision.transforms as transforms
 
+from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.loggers import TensorBoardLogger
 from torch.utils.data import DataLoader, random_split
@@ -41,9 +42,7 @@ train_dataloader = DataLoader(
 )
 
 val_dataloader = DataLoader(
-    val_dataset,
-    batch_size=args.batch_size,
-    num_workers=args.num_workers,
+    val_dataset, batch_size=args.batch_size, num_workers=args.num_workers, shuffle=False
 )
 
 model = SigNetSiamese()
@@ -55,12 +54,21 @@ logger = TensorBoardLogger("tb_logs", name="cedar")
 
 early_stop_callback = EarlyStopping(monitor="val_loss", patience=3, mode="min")
 
+
+checkpoint_callback = ModelCheckpoint(
+    dirpath="checkpoints/",  # Directory to save checkpoints
+    filename="{epoch:02d}-{val_loss:.2f}",  # Custom filename pattern
+    monitor="val_loss",  # Metric to monitor for saving the best model
+    mode="min",  # Save when the monitored metric is minimized
+    save_top_k=1,  # Keep only the best 'k' checkpoints
+)
+
 trainer = pl.Trainer(
     default_root_dir="checkpoints",
     logger=logger,
     min_epochs=0,
     max_epochs=100,
-    callbacks=[early_stop_callback],
+    callbacks=[early_stop_callback, checkpoint_callback],
 )
 
 trainer.fit(model, train_dataloader, val_dataloader)

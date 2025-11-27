@@ -71,7 +71,7 @@ class SigNetCNN(nn.Module):
             # 108800 = 17 * 25 * 256
             nn.Linear(3840, 1024),
             nn.ReLU(inplace=True),
-            nn.Dropout(p=0.5),
+            nn.Dropout(p=0.7),
             # ------------------------------------------------------------------
             # (11) FC (OUTPUT_CLASSES) + ReLU
             nn.Linear(1024, OUTPUT_CLASSES),
