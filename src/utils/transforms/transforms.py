@@ -5,33 +5,30 @@ import torchvision.transforms.v2 as transforms_v2
 from PIL import Image
 from torchvision.transforms import InterpolationMode
 
-from modules.datasets.helpers.OtsuBinarize import OtsuBinarize
+from src.utils.transforms.OtsuRemoveNoise import OtsuRemoveNoise
 
 TRANSFORMS_PRE = transforms.Compose(
     [
         transforms.Resize([155, 220], interpolation=InterpolationMode.BILINEAR),
         transforms.RandomInvert(p=1.0),
         transforms.ToTensor(),
-        # OtsuBinarize(),
+        # OtsuBinarize(), TODO: Binarization causes rapid overfitting
     ]
 )
-# transforms_v2.ToDtype(torch.float32, scale=False),
-
 
 """
+TODO: Add a random affine transform to train for better generalization? Idk
 transforms.RandomAffine(
-    degrees=10,  # Max absolute rotation angle in degrees (e.g., -10 to +10)
-    scale=(0.9, 1.1),  # Range for random scaling (e.g., 90% to 110%)
-    interpolation=InterpolationMode.BILINEAR,  # Interpolation method for the transformation
-    fill=0,  # Pixel fill value for areas outside the rotated/scaled image
+    degrees=10,
+    scale=(0.9, 1.1),
+    interpolation=InterpolationMode.BILINEAR,
+    fill=0,
 ),
 """
 
 
-def TRANSFORMS_TRAIN(mean, stdev):
-    def BINARIZE_PIL(image):
-        return
-
+def TRANSFORMS_TRAIN(stdev):
+    """Returns the transforms required during training"""
     return transforms.Compose(
         [
             transforms.Resize([155, 220], interpolation=InterpolationMode.BILINEAR),
@@ -44,10 +41,8 @@ def TRANSFORMS_TRAIN(mean, stdev):
     )
 
 
-def TRANSFORMS_EVAL(mean, stdev):
-    def BINARIZE_PIL(image):
-        return
-
+def TRANSFORMS_EVAL(stdev):
+    """Returns the transforms required during evaluation (testing/validation)"""
     return transforms.Compose(
         [
             transforms.Resize([155, 220], interpolation=InterpolationMode.BILINEAR),

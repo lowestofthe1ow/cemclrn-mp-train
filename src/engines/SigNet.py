@@ -7,7 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt  #
 import seaborn as sns
 
-from modules.models.SigNetCNN import SigNetCNN
+from src.models.SigNetCNN import SigNetCNN
 
 MARGIN = 1
 LEARNING_RATE = 1e-5
@@ -31,7 +31,7 @@ def contrastive_loss(output1, output2, y):
     return contrastive_loss, euclidean_distance
 
 
-class SigNetSiamese(pl.LightningModule):
+class SigNet(pl.LightningModule):
     def __init__(self):
         super().__init__()
 
@@ -61,7 +61,7 @@ class SigNetSiamese(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         x1, x2, y = batch
         output1, output2 = self(x1, x2)
-        loss = contrastive_loss(output1, output2, y)[0]
+        loss, _ = contrastive_loss(output1, output2, y)
 
         # Log validation loss
         self.log(
@@ -93,6 +93,7 @@ class SigNetSiamese(pl.LightningModule):
         max_acc = 0
         same_id = y == 1
 
+        # Search for an optimal threshold d that separates predicted genuine pairs from predicted forged pairs
         for threshold_d in torch.arange(min_threshold_d, max_threshold_d + 0.1, 0.1):
             true_positive = (distances <= threshold_d) & (same_id)
             true_positive_rate = true_positive.sum().float() / same_id.sum().float()

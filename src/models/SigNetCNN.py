@@ -87,12 +87,3 @@ class SigNetCNN(nn.Module):
         x = self.features(x)
         x = self.classifier(x)
         return x
-
-
-if __name__ == "__main__":
-    # Call to determine the size of the FC layer in (10)
-    cnn = SigNetCNN()
-    dummy_input = torch.randn(32, 1, 155, 200)
-    with torch.no_grad():
-        _ = cnn(dummy_input)
-    print(cnn)

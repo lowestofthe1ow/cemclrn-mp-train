@@ -10,11 +10,10 @@ from pytorch_lightning.loggers import TensorBoardLogger
 from torch.utils.data import DataLoader, random_split
 from torchvision.transforms import InterpolationMode
 
-from modules.datasets.helpers.constants import TRANSFORMS_TRAIN, TRANSFORMS_EVAL
-from modules.datasets.helpers.cedar_df import cedar_df
-from modules.datasets.torch.CEDARDataset import CEDARDataset
-from modules.models.SigNetSiamese import SigNetSiamese
-
+from src.utils.transforms.transforms import TRANSFORMS_TRAIN, TRANSFORMS_EVAL
+from src.datasets.process.cedar_df import cedar_df
+from src.datasets.CEDARDataset import CEDARDataset
+from src.engines.SigNet import SigNet
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--cedar-path", type=str, help="Path to CEDAR dataset folder")
@@ -23,14 +22,14 @@ parser.add_argument("--num-workers", type=int, default=15)
 parser.add_argument("--epochs", type=int, default=20)
 args = parser.parse_args()
 
-train_df, _, valid_df, mean, stdev = cedar_df(args.cedar_path)
 
-print(f"Loaded CEDAR dataset and calculated stdev={stdev}, mean={mean}")
+# We don't use the mean, so we just skip it for now
+train_df, _, valid_df, _, stdev = cedar_df(args.cedar_path)
 
-train_dataset = CEDARDataset(train_df, TRANSFORMS_TRAIN(mean, stdev))
+train_dataset = CEDARDataset(train_df, TRANSFORMS_TRAIN(stdev=stdev))
+val_dataset = CEDARDataset(valid_df, TRANSFORMS_EVAL(stdev=stdev))
 
-val_dataset = CEDARDataset(valid_df, TRANSFORMS_EVAL(mean, stdev))
-
+# Set up data loaders
 train_dataloader = DataLoader(
     train_dataset,
     batch_size=args.batch_size,
@@ -41,10 +40,10 @@ val_dataloader = DataLoader(
     val_dataset, batch_size=args.batch_size, num_workers=args.num_workers, shuffle=False
 )
 
-model = SigNetSiamese()
+model = SigNet()
+
 
 os.makedirs("checkpoints", exist_ok=True)
-
 logger = TensorBoardLogger("tb_logs", name="cedar")
 
 # Use when using early stopping

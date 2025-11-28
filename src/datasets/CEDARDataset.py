@@ -7,8 +7,8 @@ from PIL import Image
 from torch.utils.data import Dataset
 from torchvision.transforms import functional as F
 
-from modules.datasets.helpers.cedar_df import cedar_df
-from modules.datasets.helpers.constants import TRANSFORMS_TRAIN
+from src.utils.transforms.transforms import TRANSFORMS_TRAIN
+from src.datasets.process.cedar_df import cedar_df
 
 
 class CEDARDataset(Dataset):
@@ -27,11 +27,12 @@ class CEDARDataset(Dataset):
         x2 = self.transform(Image.open(data.path_second).convert("L"))
 
         """
+        Uncomment to show image output
         torch.set_printoptions(profile="full")
         print(x1)
         F.to_pil_image(x1 / torch.max(x1)).show()
         quit()
-        # """
+        """
 
         if data.type_first == "original" and data.type_second == "original":
             return x1, x2, 1
@@ -39,16 +40,3 @@ class CEDARDataset(Dataset):
             return x1, x2, 0
         elif data.type_first == "original" and data.type_second == "forged":
             return x1, x2, 0
-
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--cedar-path", type=str, help="Path to CEDAR dataset folder")
-    args = parser.parse_args()
-
-    train_df, test_df, mean, stdev = cedar_df(args.cedar_path)
-
-    print(f"Loaded CEDAR dataset and calculated stdev to be {stdev}")
-
-    dataset = CEDARDataset(train_df, TRANSFORMS_TRAIN(mean, stdev))
-    print(dataset.__getitem__(0))
