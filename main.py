@@ -9,7 +9,7 @@ import shutil as sh
 db = sql.connect(
   host="localhost", # change if needed 
   user="root", # change if needed 
-  password="ShadowChess76!", # change if needed 
+  password="screwthiscourse!", # change if needed 
   database="signatures" # change if needed 
 )
 
