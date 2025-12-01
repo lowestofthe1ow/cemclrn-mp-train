@@ -5,7 +5,9 @@ import torchvision.transforms as transforms
 
 from torch.utils.data import DataLoader
 from torchvision.transforms import InterpolationMode
+import torchvision.transforms.functional as F2
 import torch.nn.functional as F
+
 
 from src.utils.transforms.transforms import TRANSFORMS_EVAL
 from src.datasets.process.cedar_df import cedar_df
@@ -37,11 +39,15 @@ def inference(model_path, x1_path, x2_path):
 
     x1 = Image.open(x1_path).convert("L")
     x2 = Image.open(x2_path).convert("L")
+    x1.show()
 
     transform = TRANSFORMS_EVAL(TRAIN_STD)
 
     x1 = transform(x1).unsqueeze(0)
     x2 = transform(x2).unsqueeze(0)
+
+    F2.to_pil_image(x1.squeeze()).show()
+    quit()
 
     state_dict = torch.load(model_path)
 
@@ -60,6 +66,7 @@ if __name__ == "__main__":
     # For testing
     inference(
         "checkpoints/model_base.pth",
-        "data/cedar/full_org/original_1_1.png",
+        # "data/cedar/full_org/original_2_6.png",
+        "data/user_data/user0/user0_2.jpg",
         "data/cedar/full_org/original_1_2.png",
     )
