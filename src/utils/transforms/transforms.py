@@ -48,7 +48,7 @@ def TRANSFORMS_EVAL(stdev):
             transforms.Resize([155, 220], interpolation=InterpolationMode.BILINEAR),
             transforms.RandomInvert(p=1.0),
             transforms.ToTensor(),
-            # OtsuBinarize(),
+            # OtsuRemoveNoise(),
             # Divide by stdev but don't subtract by a mean value
             transforms.Normalize(mean=0, std=stdev),
         ]

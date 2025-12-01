@@ -69,8 +69,6 @@ class SigNet(pl.LightningModule):
         )
         return loss
 
-    # We skip defining validation_step for now, as we train with a fixed number of epochs instead.
-
     def test_step(self, batch, batch_idx):
         x1, x2, y = batch
         output1, output2 = self(x1, x2)
@@ -85,13 +83,26 @@ class SigNet(pl.LightningModule):
         self.test_y.append(y.cpu().numpy())
 
     def on_test_epoch_end(self):
-        distances = torch.from_numpy(np.concatenate(self.test_distances))
+        np_distances = np.concatenate(self.test_distances)
+        distances = torch.from_numpy(np_distances)
         y = torch.from_numpy(np.concatenate(self.test_y))
+
+        zeros = np.zeros_like(np_distances)
+        plt.figure(figsize=(12, 4))
+        sns.scatterplot(
+            x=np_distances, y=zeros, hue=y, palette="viridis", s=50, legend=False
+        )
+        plt.title("Euclidean distance distribution for CEDAR test set", fontsize=14)
+        plt.xlabel("Euclidean distance", fontsize=12)
+        plt.ylim(-0.1, 0.1)
+        plt.show()
 
         min_threshold_d = min(distances)
         max_threshold_d = max(distances)
         max_acc = 0
         same_id = y == 1
+
+        best_threshold_d = min_threshold_d
 
         # Search for an optimal threshold d that separates predicted genuine pairs from predicted forged pairs
         for threshold_d in torch.arange(min_threshold_d, max_threshold_d + 0.1, 0.1):
@@ -101,9 +112,13 @@ class SigNet(pl.LightningModule):
             true_negative_rate = true_negative.sum().float() / (~same_id).sum().float()
 
             acc = 0.5 * (true_negative_rate + true_positive_rate)
-            max_acc = max(max_acc, acc)
 
-        self.log("test/max_accuracy", max_acc, prog_bar=True)
+            if acc > max_acc:
+                max_acc = acc
+                best_threshold_d = threshold_d
+
+        self.log("max_accuracy", max_acc, prog_bar=True)
+        self.log("optimal_threshold", best_threshold_d)
 
     def configure_optimizers(self):
         optimizer = torch.optim.RMSprop(
