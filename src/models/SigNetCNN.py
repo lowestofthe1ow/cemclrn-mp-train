@@ -17,71 +17,69 @@ class SigNetCNN(nn.Module):
     def __init__(self):
         super().__init__()
 
-        # We define the CNN directly based on Table 1 of the SigNet paper:
-        # https://arxiv.org/pdf/1707.02131
+        # We define the backbone CNN directly based on Table II of this paper:
+        # https://ieeexplore.ieee.org/document/11078027
+        # This is a more modern approach vs. the original SigNet
 
         self.features = nn.Sequential(
             # ------------------------------------------------------------------
-            # (1) Convolution 96 × 11 × 11 (stride = 1) + ReLU
+            # (1) Convolution + Leaky ReLU + Pooling
             nn.Conv2d(
-                in_channels=1, out_channels=96, kernel_size=11, stride=4, padding=0
+                in_channels=1, out_channels=32, kernel_size=7, stride=1, padding=3
             ),
-            nn.ReLU(inplace=True),
+            nn.LeakyReLU(negative_slope=0.3),
+            nn.MaxPool2d(kernel_size=(2, 2), stride=(2, 2)),
             # ------------------------------------------------------------------
-            # (2) Batch Norm. (ϵ = 10^-6, momentum = 0.1 from Keras 0.9)
-            # nn.LazyBatchNorm2d(eps=1e-05, momentum=0.1),
-            nn.LocalResponseNorm(size=5, alpha=1e-4, beta=0.75, k=2),
-            # ------------------------------------------------------------------
-            # (3) Pooling 96 × 3 × 3 (stride = 2)
-            nn.MaxPool2d(kernel_size=3, stride=2),
-            # ------------------------------------------------------------------
-            # (4) Convolution 256 × 5 × 5 (stride = 1, pad = 2) + ReLU
+            # (2) Convolution + Batch norm. + Leaky ReLU + Pooling
             nn.Conv2d(
-                in_channels=96, out_channels=256, kernel_size=5, stride=1, padding=2
+                in_channels=32, out_channels=64, kernel_size=5, stride=1, padding=2
             ),
-            nn.ReLU(inplace=True),
+            nn.BatchNorm2d(64),
+            nn.LeakyReLU(negative_slope=0.3),
+            nn.MaxPool2d(kernel_size=(2, 2), stride=(2, 2)),
             # ------------------------------------------------------------------
-            # (5) Batch Norm. (ϵ = 10^-6, momentum = 0.1 from Keras 0.9)
-            # nn.LazyBatchNorm2d(eps=1e-05, momentum=0.1),
-            nn.LocalResponseNorm(size=5, alpha=1e-4, beta=0.75, k=2),
-            # ------------------------------------------------------------------
-            # (6) Pooling 256 × 3 × 3 (stride = 2) + Dropout (p = 0.3)
-            nn.MaxPool2d(kernel_size=3, stride=2),
-            nn.Dropout(p=0.3),
-            # ------------------------------------------------------------------
-            # (7) Convolution 384 × 3 × 3 (stride = 1, pad = 1) + ReLU
+            # (3) Convolution + Batch norm. + Leaky ReLU + Pooling
             nn.Conv2d(
-                in_channels=256, out_channels=384, kernel_size=3, stride=1, padding=1
+                in_channels=64,
+                out_channels=128,
+                kernel_size=(3, 3),
+                stride=(1, 1),
+                padding=1,
             ),
-            nn.ReLU(inplace=True),
+            nn.BatchNorm2d(128),
+            nn.LeakyReLU(negative_slope=0.3),
+            nn.MaxPool2d(kernel_size=(2, 2), stride=(2, 2)),
             # ------------------------------------------------------------------
-            # (8) Convolution 256 × 3 × 3 (stride = 1, pad = 1) + ReLU
+            # (4) Convolution + Leaky ReLU + Dropout
             nn.Conv2d(
-                in_channels=384, out_channels=256, kernel_size=3, stride=1, padding=1
+                in_channels=128, out_channels=256, kernel_size=3, stride=1, padding=1
             ),
-            nn.ReLU(inplace=True),
+            nn.LeakyReLU(negative_slope=0.3),
+            nn.Dropout(p=0.3),  # Rate: 0.2
             # ------------------------------------------------------------------
-            # (9) Pooling 256 × 3 × 3 (stride = 2) + Dropout (p = 0.3) + Flatten
-            nn.MaxPool2d(kernel_size=3, stride=2),
-            nn.Dropout(p=0.3),
+            # (5) Convolution + Leaky ReLU + Pooling + Dropout
+            nn.Conv2d(
+                in_channels=256, out_channels=512, kernel_size=3, stride=1, padding=1
+            ),
+            nn.LeakyReLU(negative_slope=0.3),
+            nn.MaxPool2d(kernel_size=(2, 2), stride=(2, 2)),
+            nn.Dropout(p=0.3),  # Rate: 0.2
+            # ------------------------------------------------------------------
+            # (6) Global avg. pooling
+            nn.AdaptiveAvgPool2d((1, 1)),
             nn.Flatten(),
         )
 
         self.classifier = nn.Sequential(
             # ------------------------------------------------------------------
-            # (10) FC (1024) + ReLU + Dropout (p=0.5)
-            # 108800 = 17 * 25 * 256
-            nn.Linear(3840, 1024),
-            nn.ReLU(inplace=True),
-            nn.Dropout(p=0.5),
+            # (7) Dense
+            nn.Dropout(p=0.6),  # Current best has this at 0.5
+            nn.Linear(in_features=512, out_features=512),
             # ------------------------------------------------------------------
-            # (11) FC (OUTPUT_CLASSES) + ReLU
-            nn.Linear(1024, OUTPUT_CLASSES),
-            nn.ReLU(inplace=True),
+            # (8) Dense
+            nn.Dropout(p=0.6),  # Current best has this at 0.5
+            nn.Linear(in_features=512, out_features=128),
         )
-
-        self.features.apply(initialize_weights)
-        self.classifier.apply(initialize_weights)
 
     def forward(self, x):
         x = self.features(x)

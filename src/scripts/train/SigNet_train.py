@@ -47,7 +47,7 @@ os.makedirs("checkpoints", exist_ok=True)
 logger = TensorBoardLogger("tb_logs", name="cedar")
 
 # Use when using early stopping
-# early_stop_callback = EarlyStopping(monitor="val_loss", patience=3, mode="min")
+early_stop_callback = EarlyStopping(monitor="val_loss", patience=6, mode="min")
 
 checkpoint_callback = ModelCheckpoint(
     dirpath="checkpoints/",  # Directory to save checkpoints
@@ -60,9 +60,13 @@ checkpoint_callback = ModelCheckpoint(
 trainer = pl.Trainer(
     default_root_dir="checkpoints",
     logger=logger,
-    min_epochs=args.epochs,
-    max_epochs=args.epochs,
-    callbacks=[checkpoint_callback],
+    min_epochs=0,
+    max_epochs=100,
+    callbacks=[checkpoint_callback, early_stop_callback],
 )
 
-trainer.fit(model, train_dataloader, val_dataloader)
+trainer.fit(
+    model,
+    train_dataloader,
+    val_dataloader,
+)

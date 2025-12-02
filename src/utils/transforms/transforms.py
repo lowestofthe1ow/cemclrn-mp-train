@@ -13,9 +13,9 @@ TRANSFORMS_PRE = transforms.Compose(
     [
         transforms.RandomInvert(p=1.0),
         # TODO: Look into this, gamma of 2.5 is guesswork
-        # transforms.Lambda(lambda img: F.adjust_gamma(img, 2.5)),
+        transforms.Lambda(lambda img: F.adjust_gamma(img, 2.5)),
         transforms.ToTensor(),
-        transforms.GaussianBlur(5),
+        # transforms.GaussianBlur(5),
         OtsuRemoveNoise(),
         CropToBoundingBox(),
         transforms.Resize([155, 220], interpolation=InterpolationMode.NEAREST),
@@ -39,9 +39,17 @@ def TRANSFORMS_TRAIN(stdev):
         [
             transforms.RandomInvert(p=1.0),
             # TODO: Look into this, gamma of 2.5 is guesswork
-            # transforms.Lambda(lambda img: F.adjust_gamma(img, 2.5)),
+            transforms.Lambda(lambda img: F.adjust_gamma(img, 2.5)),
+            # Current best doesn't even have this lol
+            transforms.RandomAffine(
+                degrees=10,
+                scale=(0.9, 1.1),
+                interpolation=InterpolationMode.BILINEAR,
+                fill=0,
+            ),
+            transforms.RandomPerspective(),
             transforms.ToTensor(),
-            transforms.GaussianBlur(5),
+            # transforms.GaussianBlur(5),
             OtsuRemoveNoise(),
             CropToBoundingBox(),
             transforms.Resize([155, 220], interpolation=InterpolationMode.NEAREST),
@@ -57,9 +65,9 @@ def TRANSFORMS_EVAL(stdev):
         [
             transforms.RandomInvert(p=1.0),
             # TODO: Look into this, gamma of 2.5 is guesswork
-            # transforms.Lambda(lambda img: F.adjust_gamma(img, 2.5)),
+            transforms.Lambda(lambda img: F.adjust_gamma(img, 2.5)),
             transforms.ToTensor(),
-            transforms.GaussianBlur(5),
+            # transforms.GaussianBlur(5),
             OtsuRemoveNoise(),
             CropToBoundingBox(),
             transforms.Resize([155, 220], interpolation=InterpolationMode.NEAREST),

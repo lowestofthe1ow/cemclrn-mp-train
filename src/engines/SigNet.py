@@ -9,9 +9,9 @@ import seaborn as sns
 
 from src.models.SigNetCNN import SigNetCNN
 
-MARGIN = 1
-LEARNING_RATE = 1e-5
-WEIGHT_DECAY = 5e-4  # 0.0005
+MARGIN = 1.2
+LEARNING_RATE = 1e-5  # Current best has this at 1e-4
+WEIGHT_DECAY = 1e-4  # 0.0005
 MOMENTUM = 0.9
 FUZZY = 1e-8
 GAMMA = 0.1
@@ -22,7 +22,7 @@ GAMMA = 0.1
 # Values for α and β are not mentioned, so we use 1
 def contrastive_loss(output1, output2, y):
     euclidean_distance = F.pairwise_distance(output1, output2)
-    contrastive_loss = y * euclidean_distance**2 + (1 - y) * (
+    contrastive_loss = 0.5 * y * euclidean_distance**2 + 0.5 * (1 - y) * (
         torch.max(torch.zeros_like(euclidean_distance), MARGIN - euclidean_distance)
         ** 2
     )
@@ -121,6 +121,7 @@ class SigNet(pl.LightningModule):
         self.log("optimal_threshold", best_threshold_d)
 
     def configure_optimizers(self):
+        # """
         optimizer = torch.optim.RMSprop(
             self.cnn.parameters(),
             lr=LEARNING_RATE,
@@ -128,8 +129,23 @@ class SigNet(pl.LightningModule):
             momentum=MOMENTUM,
             eps=FUZZY,
         )
+        # """
 
-        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, 5, 0.1)  # Divide by 10
+        """
+        optimizer = torch.optim.AdamW(
+            self.cnn.parameters(),
+            lr=LEARNING_RATE,
+            weight_decay=WEIGHT_DECAY,
+            eps=FUZZY,
+        )
+        # """
+
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+            optimizer,
+            mode="min",
+            factor=0.1,
+            patience=3,
+        )
 
         """
         scheduler = torch.optim.lr_scheduler.MultiStepLR(

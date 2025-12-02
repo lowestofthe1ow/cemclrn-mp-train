@@ -1,3 +1,4 @@
+import numpy as np
 import os
 import pytorch_lightning as pl
 import torch
@@ -20,7 +21,7 @@ from PIL import Image
 TRAIN_STD = 0.07225848734378815
 
 # Threshold Euclidean distance to separate "genuine" vs. "forged" pairs
-D_THRESHOLD = 0.20001120865345
+D_THRESHOLD = 0.6017965078353882
 
 """
 TODO: This currently only checks a pair of images.
@@ -46,9 +47,6 @@ def inference(model_path, x1_path, x2_path):
     x1 = transform(x1).unsqueeze(0)
     x2 = transform(x2).unsqueeze(0)
 
-    F2.to_pil_image(x1.squeeze()).show()
-    quit()
-
     state_dict = torch.load(model_path)
 
     model = SigNet()
@@ -61,12 +59,32 @@ def inference(model_path, x1_path, x2_path):
         distance = F.pairwise_distance(y1, y2)
         prediction = distance <= D_THRESHOLD  # True if genuine pair
 
+        return distance, prediction
+
 
 if __name__ == "__main__":
-    # For testing
-    inference(
-        "checkpoints/model_base.pth",
-        # "data/cedar/full_org/original_2_6.png",
-        "data/user_data/user0/user0_2.jpg",
-        "data/cedar/full_org/original_1_2.png",
+    distance, prediction = inference(
+        "checkpoints/base_model2.pth",
+        "data/user_data/user0/user0_3.jpg",
+        "data/user_data/user0/user0_0.jpg",
     )
+
+    print(f"Distance = {distance}, Prediction = {prediction}")
+
+    """
+    # For testing
+    np.random.choice(my_list, size=3)
+
+    files_ref = os.listdir("data/cedar/full_org")
+    files_ref = random.ssampl
+    files_query = os.listdir("data/user_data/user0")
+
+    files_ref = [
+        os.path.join("data/cedar/full_org", filename) for filename in files_ref
+    ]
+    files_query = [
+        os.path.join("data/user_data/user0", filename) for filename in files_query
+    ]
+
+    print(files_ref)
+    """
