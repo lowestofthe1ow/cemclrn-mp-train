@@ -36,4 +36,4 @@ class UserDataset(Dataset):
         quit()
         """
 
-        return x1, x2, 0
+        return x1, x2, data.genuine

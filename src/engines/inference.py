@@ -18,7 +18,7 @@ from src.engines.SigNet import SigNet
 from PIL import Image
 
 # Image standard dev. calculated during training for pixel values in [0, 1]
-TRAIN_STD = 0.07225848734378815
+TRAIN_STD = 0.2346486747264862
 
 # Threshold Euclidean distance to separate "genuine" vs. "forged" pairs
 D_THRESHOLD = 0.6017965078353882
@@ -64,8 +64,9 @@ def inference(model_path, x1_path, x2_path):
         return distance, prediction
 """
 
+
 # Assuming x2_paths is a vector of paths
-#  
+#
 def inference(model_path, x1_path, x2_paths):
     """
     Args:
@@ -75,7 +76,7 @@ def inference(model_path, x1_path, x2_paths):
     """
 
     x1 = Image.open(x1_path).convert("L")
-    x1.show() # only for debugging
+    x1.show()  # only for debugging
 
     transform = TRANSFORMS_EVAL(TRAIN_STD)
 
@@ -109,13 +110,14 @@ def inference(model_path, x1_path, x2_paths):
                 verdict -= 1
 
     total_dist /= length
-    
+
     if verdict > 0:
         prediction = True
     else:
         prediction = False
 
     return total_dist, prediction
+
 
 if __name__ == "__main__":
     distance, prediction = inference(

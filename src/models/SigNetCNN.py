@@ -73,11 +73,11 @@ class SigNetCNN(nn.Module):
         self.classifier = nn.Sequential(
             # ------------------------------------------------------------------
             # (7) Dense
-            nn.Dropout(p=0.6),  # Current best has this at 0.5
+            nn.Dropout(p=0.5),  # Current best has this at 0.5
             nn.Linear(in_features=512, out_features=512),
             # ------------------------------------------------------------------
             # (8) Dense
-            nn.Dropout(p=0.6),  # Current best has this at 0.5
+            nn.Dropout(p=0.5),  # Current best has this at 0.5
             nn.Linear(in_features=512, out_features=128),
         )
 

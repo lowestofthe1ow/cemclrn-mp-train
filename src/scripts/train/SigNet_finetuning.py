@@ -24,13 +24,13 @@ from src.utils.transforms.transforms import TRANSFORMS_TRAIN
 from torch.utils.data import DataLoader
 from datetime import datetime
 
-TRAIN_STD = 0.07225848734378815
+TRAIN_STD = 0.2346486747264862
 
 # SQL for user signatures
 db = sql.connect(
     host="localhost",  # change if needed
     user="root",  # change if needed
-    password="ManCC75?$@",  # change if needed
+    password="fujita_kotone",  # change if needed
     database="signatures",  # change if needed
 )
 cursor = db.cursor()
@@ -166,7 +166,7 @@ def makeDf(repeat, user_id):
     return combined_df
 
 
-def finetune(user_id, batch_size=32, num_workers=15):
+def finetune(user_id, batch_size=4, num_workers=15):
     insert_user_data(cursor)
 
     # Check if correct
@@ -252,7 +252,11 @@ def finetune(user_id, batch_size=32, num_workers=15):
 
     os.makedirs(model_path, exist_ok=True)
 
-    torch.save(state_dict, os.path.join(model_path, model_filename))
+    full_path = os.path.join(model_path, model_filename)
+
+    torch.save(state_dict, full_path)
+
+    return full_path
 
 
 if __name__ == "__main__":

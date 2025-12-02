@@ -10,7 +10,7 @@ import seaborn as sns
 from src.models.SigNetCNN import SigNetCNN
 
 MARGIN = 1.2
-LEARNING_RATE = 1e-5  # Current best has this at 1e-4
+LEARNING_RATE = 1e-4  # Current best has this at 1e-4
 WEIGHT_DECAY = 1e-4  # 0.0005
 MOMENTUM = 0.9
 FUZZY = 1e-8
