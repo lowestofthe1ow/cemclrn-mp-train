@@ -78,7 +78,7 @@ def get_30_most_recent(user_id):
     )
     return [row[0] for row in cursor.fetchall()]
 
-
+create_tables(cursor)
 app = fa.FastAPI()
 
 
@@ -138,7 +138,7 @@ async def update(name: str, file: fa.UploadFile = fa.File(...)):
 
 def main():
     print("Hello from cemclrn-mp-train!")
-    create_tables(cursor)
+    # create_tables(cursor) -- MOVED outside main, in line 81
 
 
 if __name__ == "__main__":
