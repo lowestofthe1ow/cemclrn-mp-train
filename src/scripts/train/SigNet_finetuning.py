@@ -17,6 +17,7 @@ from torch.utils.data import DataLoader, random_split
 from torch.utils.data import random_split
 from torchvision.transforms import InterpolationMode
 
+from src.datasets.process.cedar_df import cedar_df
 from src.datasets.UserDataset import UserDataset
 from src.engines.SigNet import SigNet
 from src.utils.transforms.transforms import TRANSFORMS_TRAIN
@@ -77,6 +78,8 @@ def makeDf(repeat, user_id):
     LIMIT 15
     """
 
+    train_df, _, valid_df, _, stdev = cedar_df("data/cedar")
+
     user_sign_df = pd.read_sql(query, db, params=(user_id,))
 
     # Genuine-fake pairs
@@ -84,12 +87,11 @@ def makeDf(repeat, user_id):
         drop=True
     )
 
-    all_org = [
-        os.path.join(cedar_org_path, f)
-        for f in os.listdir(cedar_org_path)
-        if os.path.isfile(os.path.join(cedar_org_path, f))
-    ]
-    random_orgs = np.random.choice(all_org, size=15 * repeat, replace=False)
+    print(train_df["path_first"].unique())
+
+    random_orgs = np.random.choice(
+        train_df["path_first"].unique(), size=15 * repeat, replace=False
+    )
 
     fake_sign_df = fake_sign_df.rename(columns={"path": "orig"})
     fake_sign_df["not_orig"] = random_orgs
@@ -98,7 +100,7 @@ def makeDf(repeat, user_id):
     fake_sign_df = fake_sign_df.rename(columns={"path": "orig"})
 
     # Genuine-genuine pairs
-    pairs = list(itertools.permutations(user_sign_df["path"], 2))
+    pairs = list(itertools.combinations(user_sign_df["path"], 2))
 
     gen_sign_df = pd.DataFrame(pairs, columns=["path", "not_orig"])
     gen_sign_df = gen_sign_df.rename(columns={"path": "orig"})
@@ -122,9 +124,7 @@ def makeDf(repeat, user_id):
     return combined_df
 
 
-def finetune(user_id, batch_size=4, num_workers=15):
-    insert_user_data(cursor)
-
+def finetune(user_id, batch_size=128, num_workers=15):
     # Check if correct
     cursor.execute("SELECT COUNT(*) FROM users")
     total_users = cursor.fetchone()[0]
@@ -135,6 +135,7 @@ def finetune(user_id, batch_size=4, num_workers=15):
 
     pd.set_option("display.max_colwidth", None)
     pd.set_option("display.width", None)
+    pd.set_option("display.max_rows", None)
 
     user_df = makeDf(14, user_id)
 
@@ -162,10 +163,17 @@ def finetune(user_id, batch_size=4, num_workers=15):
         shuffle=False,
     )
 
-    state_dict = torch.load("checkpoints/base_model2.pth")
+    # state_dict = torch.load("checkpoints/base_model.pth")
 
-    model = SigNet()
-    model.load_state_dict(state_dict)
+    # model = SigNet()
+    # model.load_state_dict(state_dict)
+
+    model = SigNet.load_from_checkpoint(
+        "checkpoints/FINAL_epoch=10-val_loss=0.05998.ckpt",
+        learning_rate=1e-4,
+        weight_decay=5e-4,
+    )
+    # model.eval()
 
     for param in model.cnn.features.parameters():
         param.requires_grad = False

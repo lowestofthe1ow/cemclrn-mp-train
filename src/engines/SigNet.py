@@ -32,7 +32,9 @@ def contrastive_loss(output1, output2, y):
 
 
 class SigNet(pl.LightningModule):
-    def __init__(self):
+    def __init__(
+        self, learning_rate=LEARNING_RATE, weight_decay=WEIGHT_DECAY, momentum=MOMENTUM
+    ):
         super().__init__()
 
         # "Branch" CNN of the Siamese network
@@ -40,6 +42,8 @@ class SigNet(pl.LightningModule):
 
         self.test_distances = []
         self.test_y = []
+
+        self.save_hyperparameters()
 
     def forward(self, x1, x2):
         y1 = self.cnn(x1)
@@ -104,29 +108,72 @@ class SigNet(pl.LightningModule):
 
         best_threshold_d = min_threshold_d
 
+        best_frr = 1
+        best_frr = 1
+
+        # Let's use a fixed threshold instead'
+        threshold_d = 0.5
+
+        TP = (distances <= threshold_d) & (same_id)
+        TN = (distances > threshold_d) & (~same_id)
+        FP = (distances <= threshold_d) & (~same_id)
+        FN = (distances > threshold_d) & (same_id)
+
+        true_positive = (distances <= threshold_d) & (same_id)
+        true_positive_rate = true_positive.sum().float() / same_id.sum().float()
+        true_negative = (distances > threshold_d) & (~same_id)
+        true_negative_rate = true_negative.sum().float() / (~same_id).sum().float()
+
+        FAR = FP.sum().float() / (~same_id).sum()
+        FRR = FN.sum().float() / same_id.sum()
+
+        acc = 0.5 * (true_negative_rate + true_positive_rate)
+
+        if acc > max_acc:
+            max_acc = acc
+            best_threshold_d = threshold_d
+            best_frr = FRR.item()
+            best_far = FAR.item()
+
+        """
         # Search for an optimal threshold d that separates predicted genuine pairs from predicted forged pairs
         for threshold_d in torch.arange(min_threshold_d, max_threshold_d + 0.1, 0.1):
+            TP = (distances <= threshold_d) & (same_id)
+            TN = (distances > threshold_d) & (~same_id)
+            FP = (distances <= threshold_d) & (~same_id)
+            FN = (distances > threshold_d) & (same_id)
+
             true_positive = (distances <= threshold_d) & (same_id)
             true_positive_rate = true_positive.sum().float() / same_id.sum().float()
             true_negative = (distances > threshold_d) & (~same_id)
             true_negative_rate = true_negative.sum().float() / (~same_id).sum().float()
+
+            TPR = TP.sum().float() / true_positive.sum()
+            TNR = TN.sum().float() / true_negative.sum()
+            FAR = FP.sum().float() / true_negative.sum()
+            FRR = FN.sum().float() / true_positive.sum()
 
             acc = 0.5 * (true_negative_rate + true_positive_rate)
 
             if acc > max_acc:
                 max_acc = acc
                 best_threshold_d = threshold_d
+                best_frr = FRR.item()
+                best_far = FAR.item()
+        """
 
         self.log("max_accuracy", max_acc, prog_bar=True)
         self.log("optimal_threshold", best_threshold_d)
+        self.log("FRR", best_frr)
+        self.log("FAR", best_far)
 
     def configure_optimizers(self):
         # """
         optimizer = torch.optim.RMSprop(
             self.cnn.parameters(),
-            lr=LEARNING_RATE,
-            weight_decay=WEIGHT_DECAY,
-            momentum=MOMENTUM,
+            lr=self.hparams.learning_rate,
+            weight_decay=self.hparams.weight_decay,
+            momentum=self.hparams.momentum,
             eps=FUZZY,
         )
         # """

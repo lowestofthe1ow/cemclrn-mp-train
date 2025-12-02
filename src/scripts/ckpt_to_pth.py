@@ -45,6 +45,6 @@ model.eval()
 
 scripted_module = torch.jit.script(model)
 optimized_scripted_module = optimize_for_mobile(scripted_module)
-optimized_scripted_module._save_for_lite_interpreter("finetuned_model2.ptl")
+optimized_scripted_module._save_for_lite_interpreter("base_model_.ptl")
 
 print(f"Saved model weights from {args.ckpt_path} to {args.pth_path}")

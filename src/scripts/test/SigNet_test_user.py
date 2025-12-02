@@ -1,13 +1,16 @@
 import argparse
 import os
+import pandas as pd
 import pytorch_lightning as pl
 import torchvision.transforms as transforms
+import itertools
 
 from torch.utils.data import DataLoader
 from torchvision.transforms import InterpolationMode
 
 from src.utils.transforms.transforms import TRANSFORMS_EVAL
 from src.datasets.process.cedar_df import cedar_df
+from src.datasets.UserDataset import UserDataset
 from src.datasets.CEDARDataset import CEDARDataset
 from src.engines.SigNet import SigNet
 
@@ -26,11 +29,46 @@ parser.add_argument("--num-workers", type=int, default=15)
 args = parser.parse_args()
 
 
-train_df, test_df, valid_df, mean, stdev = cedar_df(args.cedar_path)
+TRAIN_STD = 0.2346486747264862
 
-# print(f"Test dataset size: {len(test_df)}")
+forged_path = "data/test_user_data/forged"
+full_paths_forged = []
+for entry in os.listdir(forged_path):
+    full_path = os.path.join(forged_path, entry)
+    full_paths_forged.append(full_path)
 
-test_dataset = CEDARDataset(test_df, TRANSFORMS_EVAL(stdev=stdev))
+genuine_path = "data/test_user_data/genuine"
+full_paths_genuine = []
+i = 0
+for entry in os.listdir(genuine_path):
+    full_path = os.path.join(genuine_path, entry)
+    full_paths_genuine.append(full_path)
+    i = i + 1
+    if i >= 5:
+        break
+
+
+df_pairs_genuine = pd.DataFrame(
+    list(itertools.combinations(full_paths_genuine, 2)),
+    columns=["orig", "not_orig"],
+)
+df_pairs_genuine["genuine"] = 1
+
+
+df_pairs_forged = pd.DataFrame(
+    list(itertools.product(full_paths_genuine, full_paths_forged)),
+    columns=["orig", "not_orig"],
+)
+df_pairs_forged["genuine"] = 0
+
+df_pairs_all = pd.concat([df_pairs_genuine, df_pairs_forged])
+
+print()
+
+print(df_pairs_all)
+
+test_dataset = UserDataset(df_pairs_all, transform=TRANSFORMS_EVAL(TRAIN_STD))
+
 test_dataloader = DataLoader(
     test_dataset, batch_size=args.batch_size, num_workers=args.num_workers
 )
