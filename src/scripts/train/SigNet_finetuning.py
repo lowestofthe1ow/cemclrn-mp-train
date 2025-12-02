@@ -7,6 +7,7 @@ from pathlib import Path
 
 from src.datasets.UserDataset import UserDataset
 from src.utils.transforms.transforms import TRANSFORMS_TRAIN
+from datetime import datetime
 
 TRAIN_STD = 0.07225848734378815
 
@@ -125,7 +126,7 @@ def makeDf(repeat, user_id):
     return new_sign_df
 
 
-def main():
+def finetune(user_id):
     insert_user_data(cursor)
 
     # Check if correct
@@ -139,7 +140,7 @@ def main():
     pd.set_option("display.max_colwidth", None)
     pd.set_option("display.width", None)
 
-    user_df = makeDf(5, 1)
+    user_df = makeDf(5, user_id)
     print(user_df)
 
     full_dataset = UserDataset(user_df, TRANSFORMS_TRAIN(stdev=TRAIN_STD))
@@ -150,11 +151,65 @@ def main():
         generator=torch.Generator().manual_seed(339),
     )
 
+    train_dataloader = DataLoader(
+        train_dataset,
+        batch_size=args.batch_size,
+        num_workers=args.num_workers,
+        shuffle=True,
+    )
+    val_dataloader = DataLoader(
+        val_dataset,
+        batch_size=args.batch_size,
+        num_workers=args.num_workers,
+        shuffle=False,
+    )
+
+    state_dict = torch.load("checkpoints/base_model2.pth")
+
     model = SigNet()
+    model.load_state_dict(state_dict)
+    model.eval()
 
     for param in model.cnn.features.parameters():
         param.requires_grad = False
 
+    logger = TensorBoardLogger("tb_logs", name="cedar")
+
+    # Use when using early stopping
+    early_stop_callback = EarlyStopping(monitor="val_loss", patience=6, mode="min")
+
+    checkpoint_callback = ModelCheckpoint(
+        dirpath=f"checkpoints/finetuned/checkpoints/",  # Directory to save checkpoints
+        filename=f"user{user_id}_{{epoch:02d}}_{{val_loss:.2f}}",  # Custom filename pattern
+        monitor="val_loss",  # Metric to monitor for saving the best model
+        mode="min",  # Save when the monitored metric is minimized
+        save_top_k=1,  # Keep only the best checkpoint
+    )
+
+    trainer = pl.Trainer(
+        default_root_dir="checkpoints",
+        logger=logger,
+        min_epochs=0,
+        max_epochs=100,
+        callbacks=[checkpoint_callback, early_stop_callback],
+    )
+
+    trainer.fit(
+        model,
+        train_dataloader,
+        val_dataloader,
+    )
+
+    checkpoint = torch.load(checkpoint_callback.best_model_path, map_location="cpu")
+    state_dict = checkpoint["state_dict"]
+
+    # TODO: Add to an SQL table
+    model_filename = (
+        f"checkpoints/finetuned/models/user{user_id}/model_{datetime.now()}.pth"
+    )
+
+    torch.save(state_dict, model_filename)
+
 
 if __name__ == "__main__":
-    main()
+    finetune(user_id)
