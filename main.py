@@ -45,10 +45,6 @@ def create_tables(cursor):
     db.commit()
 
 
-"""
-
-
-
 def get_user_id(name):
     cursor.execute("SELECT id FROM users WHERE name = %s", (name,))
     r = cursor.fetchone()
@@ -138,8 +134,6 @@ async def update(name: str, file: fa.UploadFile = fa.File(...)):
             "Status": "Registered",
             "Signature Count": 67,
         }  # placeholder, fine-tune model based on most recent 30 samples
-
-"""
 
 
 def main():
