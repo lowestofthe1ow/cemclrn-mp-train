@@ -117,16 +117,23 @@ async def inference(name: str, new_signature: fa.UploadFile = fa.File(...)):
 
 # /update POST (?) - Adds a new signature for a user.
 # Check if user has > 30 (?) signature samples, fine-tune model based on most recent 30 samples
-
-
 @app.post("/update")
 async def update(name: str, file: fa.UploadFile = fa.File(...)):
     user_id = get_user_id(name)
     if not user_id:
         return {"Error": "User not found."}
 
-    add_signature(user_id, file)  # havent finished this, needs to be path not file
+    folder = f"data/user_data/{name}"
+    os.makedirs(folder, exist_ok=True)
 
+    # Saving file to disk
+    file_path = os.path.join(folder, file.filename)
+    with open(file_path, "wb") as f:
+        sh.copyfileobj(file.file, f)
+
+    # Storing path in database
+    add_signature(user_id, file_path)
+    
     recent = get_30_most_recent(user_id)
 
     if len(recent) > 30:
