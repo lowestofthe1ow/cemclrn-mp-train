@@ -4,6 +4,9 @@ import pandas as pd
 import numpy as np
 import mysql.connector as sql
 from pathlib import Path
+from torch.utils.data import random_split
+import torch
+import itertools
 
 from src.datasets.UserDataset import UserDataset
 from src.utils.transforms.transforms import TRANSFORMS_TRAIN
@@ -15,7 +18,7 @@ TRAIN_STD = 0.07225848734378815
 db = sql.connect(
     host="localhost",  # change if needed
     user="root",  # change if needed
-    password="fujita_kotone",  # change if needed
+    password="ManCC75?$@",  # change if needed
     database="signatures",  # change if needed
 )
 cursor = db.cursor()
@@ -25,6 +28,13 @@ cedar_org_path = "data/cedar/full_org"
 
 # Create tables
 def create_tables(cursor):
+    cursor.execute("DELETE FROM signatures")
+    cursor.execute("DELETE FROM users")
+    
+    # Reset auto-increment counters
+    cursor.execute("ALTER TABLE users AUTO_INCREMENT = 1")
+    cursor.execute("ALTER TABLE signatures AUTO_INCREMENT = 1")
+    
     cursor.execute(
         """
         CREATE TABLE IF NOT EXISTS users (
@@ -45,15 +55,6 @@ def create_tables(cursor):
         )
         """
     )
-    """
-    cursor.execute("DELETE FROM users")
-    cursor.execute("DELETE FROM signatures")
-    cursor.execute("ALTER TABLE users AUTO_INCREMENT = 1")
-    cursor.execute("ALTER TABLE signatures AUTO_INCREMENT = 1")
-
-    cursor.execute("DELETE FROM users")
-    cursor.execute("DELETE FROM signatures")
-    """
     db.commit()
 
 
@@ -108,8 +109,10 @@ def makeDf(repeat, user_id):
     LIMIT 15
     """
 
-    new_sign_df = pd.read_sql(query, db, params=(user_id,))
-    new_sign_df = new_sign_df.loc[new_sign_df.index.repeat(repeat)].reset_index(
+    user_sign_df = pd.read_sql(query, db, params=(user_id,))
+
+    # Genuine-fake pairs
+    fake_sign_df = user_sign_df.loc[user_sign_df.index.repeat(repeat)].reset_index(
         drop=True
     )
 
@@ -120,11 +123,35 @@ def makeDf(repeat, user_id):
     ]
     random_orgs = np.random.choice(all_org, size=15 * repeat, replace=False)
 
-    new_sign_df = new_sign_df.rename(columns={"path": "orig"})
-    new_sign_df["not_orig"] = random_orgs
+    fake_sign_df = fake_sign_df.rename(columns={"path": "orig"})
+    fake_sign_df["not_orig"] = random_orgs
+    fake_sign_df["genuine"] = 0
 
-    return new_sign_df
+    fake_sign_df = fake_sign_df.rename(columns={"path": "orig"})
 
+    # Genuine-genuine pairs
+    pairs = list(itertools.permutations(user_sign_df['path'], 2))
+
+    gen_sign_df = pd.DataFrame(pairs, columns=['path', 'not_orig'])
+    gen_sign_df = gen_sign_df.rename(columns={"path": "orig"})
+    gen_sign_df["genuine"] = 1
+
+    combined_df = pd.concat([fake_sign_df, gen_sign_df]).reset_index(drop=True)
+
+    """ Uncomment to test
+    print("Genuine-fake pairs ======================================================")
+    print(f"Number of unique elements in orig: {fake_sign_df['orig'].nunique()}")
+    print(f"Number of unique elements in not_orig: {fake_sign_df['not_orig'].nunique()}")
+    print(fake_sign_df)
+    print("Genuine-ganuine pairs ======================================================")
+    print(f"Number of unique elements in orig: {gen_sign_df['orig'].nunique()}")
+    print(f"Number of unique elements in not_orig: {gen_sign_df['not_orig'].nunique()}")
+    print(gen_sign_df)
+    print("\nCombined pairs ======================================================")
+    print(combined_df)
+    """
+
+    return combined_df
 
 def finetune(user_id):
     insert_user_data(cursor)
@@ -140,8 +167,7 @@ def finetune(user_id):
     pd.set_option("display.max_colwidth", None)
     pd.set_option("display.width", None)
 
-    user_df = makeDf(5, user_id)
-    print(user_df)
+    user_df = makeDf(14, user_id)
 
     full_dataset = UserDataset(user_df, TRANSFORMS_TRAIN(stdev=TRAIN_STD))
 
@@ -212,4 +238,4 @@ def finetune(user_id):
 
 
 if __name__ == "__main__":
-    finetune(user_id)
+    finetune(1)
