@@ -29,14 +29,14 @@ For a user, we want it to check the queried image x1 with all possible x2 in all
 signatures for that user in the database.
 """
 
-
+"""
 def inference(model_path, x1_path, x2_path):
-    """
-    Args:
-        model_path: Path to model .pth file
-        x1:         Path to first image
-        x2:         Path to second image
-    """
+
+#    Args:
+#        model_path: Path to model .pth file
+#        x1:         Path to first image
+#        x2:         Path to second image
+
 
     x1 = Image.open(x1_path).convert("L")
     x2 = Image.open(x2_path).convert("L")
@@ -60,7 +60,60 @@ def inference(model_path, x1_path, x2_path):
         prediction = distance <= D_THRESHOLD  # True if genuine pair
 
         return distance, prediction
+"""
 
+# Assuming x2_paths is a vector of paths
+#  
+def inference(model_path, x1_path, x2_paths):
+    """
+    Args:
+        model_path: Path to model .pth file
+        x1_path:         Path to first image
+        x2_paths:         Path(s) to second image
+    """
+
+    x1 = Image.open(x1_path).convert("L")
+    x1.show() # only for debugging
+
+    transform = TRANSFORMS_EVAL(TRAIN_STD)
+
+    x1 = transform(x1).unsqueeze(0)
+
+    state_dict = torch.load(model_path)
+
+    model = SigNet()
+    model.load_state_dict(state_dict)
+    model.eval()
+
+    length = len(x2_paths)
+    verdict = 0
+    total_dist = 0
+
+    for x in x2_paths:
+
+        x2 = Image.open(x).convert("L")
+        x2 = transform(x2).unsqueeze(0)
+
+        with torch.no_grad():
+            y1, y2 = model(x1, x2)
+
+            distance = F.pairwise_distance(y1, y2).item()
+            total_dist += distance
+            prediction = distance <= D_THRESHOLD  # True if genuine pair
+
+            if prediction:
+                verdict += 1
+            else:
+                verdict -= 1
+
+    total_dist /= length
+    
+    if verdict > 0:
+        prediction = True
+    else:
+        prediction = False
+
+    return total_dist, prediction
 
 if __name__ == "__main__":
     distance, prediction = inference(
