@@ -87,7 +87,7 @@ app = fa.FastAPI()
 async def register(name: str, files: list[fa.UploadFile] = fa.File(...)):
     user_id = add_missing_user(name)
 
-    folder = f"data/{name}"
+    folder = f"data/user_data/{name}"
     os.makedirs(folder, exist_ok=True)
 
     for file in files:
