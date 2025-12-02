@@ -5,6 +5,11 @@ import numpy as np
 import mysql.connector as sql
 from pathlib import Path
 
+from src.datasets.UserDataset import UserDataset
+from src.utils.transforms.transforms import TRANSFORMS_TRAIN
+
+TRAIN_STD = 0.07225848734378815
+
 # SQL for user signatures
 db = sql.connect(
     host="localhost",  # change if needed
@@ -133,7 +138,22 @@ def main():
 
     pd.set_option("display.max_colwidth", None)
     pd.set_option("display.width", None)
-    print(makeDf(5, 1))
+
+    user_df = makeDf(5, 1)
+    print(user_df)
+
+    full_dataset = UserDataset(user_df, TRANSFORMS_TRAIN(stdev=TRAIN_STD))
+
+    train_dataset, val_dataset = random_split(
+        full_dataset,
+        [0.9 * len(full_dataset), 0.1 * len(full_dataset)],
+        generator=torch.Generator().manual_seed(339),
+    )
+
+    model = SigNet()
+
+    for param in model.cnn.features.parameters():
+        param.requires_grad = False
 
 
 if __name__ == "__main__":
