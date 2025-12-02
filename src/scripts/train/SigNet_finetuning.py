@@ -1,12 +1,24 @@
 import os
 from datetime import datetime
 import pandas as pd
+import torch
 import numpy as np
 import mysql.connector as sql
 from pathlib import Path
 
+import pytorch_lightning as pl
+import torchvision.transforms as transforms
+
+from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.callbacks.early_stopping import EarlyStopping
+from pytorch_lightning.loggers import TensorBoardLogger
+from torch.utils.data import DataLoader, random_split
+from torchvision.transforms import InterpolationMode
+
+from src.engines.SigNet import SigNet
 from src.datasets.UserDataset import UserDataset
 from src.utils.transforms.transforms import TRANSFORMS_TRAIN
+from torch.utils.data import DataLoader
 from datetime import datetime
 
 TRAIN_STD = 0.07225848734378815
@@ -126,7 +138,7 @@ def makeDf(repeat, user_id):
     return new_sign_df
 
 
-def finetune(user_id):
+def finetune(user_id, batch_size=32, num_workers=15):
     insert_user_data(cursor)
 
     # Check if correct
@@ -140,27 +152,30 @@ def finetune(user_id):
     pd.set_option("display.max_colwidth", None)
     pd.set_option("display.width", None)
 
-    user_df = makeDf(5, user_id)
+    user_df = makeDf(20, user_id)
     print(user_df)
 
     full_dataset = UserDataset(user_df, TRANSFORMS_TRAIN(stdev=TRAIN_STD))
 
-    train_dataset, val_dataset = random_split(
+    train_dataset, val_dataset = torch.utils.data.random_split(
         full_dataset,
-        [0.9 * len(full_dataset), 0.1 * len(full_dataset)],
+        [
+            int(0.9 * len(full_dataset)),
+            len(full_dataset) - int(0.9 * len(full_dataset)),
+        ],
         generator=torch.Generator().manual_seed(339),
     )
 
     train_dataloader = DataLoader(
         train_dataset,
-        batch_size=args.batch_size,
-        num_workers=args.num_workers,
+        batch_size=batch_size,
+        num_workers=num_workers,
         shuffle=True,
     )
     val_dataloader = DataLoader(
         val_dataset,
-        batch_size=args.batch_size,
-        num_workers=args.num_workers,
+        batch_size=batch_size,
+        num_workers=num_workers,
         shuffle=False,
     )
 
@@ -168,7 +183,6 @@ def finetune(user_id):
 
     model = SigNet()
     model.load_state_dict(state_dict)
-    model.eval()
 
     for param in model.cnn.features.parameters():
         param.requires_grad = False
@@ -192,6 +206,7 @@ def finetune(user_id):
         min_epochs=0,
         max_epochs=100,
         callbacks=[checkpoint_callback, early_stop_callback],
+        log_every_n_steps=1,
     )
 
     trainer.fit(
@@ -203,13 +218,15 @@ def finetune(user_id):
     checkpoint = torch.load(checkpoint_callback.best_model_path, map_location="cpu")
     state_dict = checkpoint["state_dict"]
 
-    # TODO: Add to an SQL table
-    model_filename = (
-        f"checkpoints/finetuned/models/user{user_id}/model_{datetime.now()}.pth"
-    )
+    model_path = f"checkpoints/finetuned/models/user{user_id}/"
 
-    torch.save(state_dict, model_filename)
+    # TODO: Add to an SQL table
+    model_filename = f"model_{datetime.now()}.pth"
+
+    os.makedirs(model_path, exist_ok=True)
+
+    torch.save(state_dict, os.path.join(model_path, model_filename))
 
 
 if __name__ == "__main__":
-    finetune(user_id)
+    finetune(1)
