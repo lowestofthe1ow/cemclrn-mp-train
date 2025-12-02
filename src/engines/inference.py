@@ -40,12 +40,14 @@ def inference(model_path, x1_path, x2_path):
 
     x1 = Image.open(x1_path).convert("L")
     x2 = Image.open(x2_path).convert("L")
-    x1.show()
 
     transform = TRANSFORMS_EVAL(TRAIN_STD)
 
     x1 = transform(x1).unsqueeze(0)
     x2 = transform(x2).unsqueeze(0)
+
+    F2.to_pil_image(x1.squeeze()).show()
+    F2.to_pil_image(x2.squeeze()).show()
 
     state_dict = torch.load(model_path)
 
@@ -117,9 +119,9 @@ def inference(model_path, x1_path, x2_paths):
 
 if __name__ == "__main__":
     distance, prediction = inference(
-        "checkpoints/base_model2.pth",
+        "checkpoints/finetuned/models/user1/modeltest.pth",
         "data/user_data/user0/user0_3.jpg",
-        "data/user_data/user0/user0_0.jpg",
+        "kek.jpg",
     )
 
     print(f"Distance = {distance}, Prediction = {prediction}")

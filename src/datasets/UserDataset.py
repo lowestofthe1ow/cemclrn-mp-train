@@ -18,13 +18,15 @@ class UserDataset(Dataset):
         self.transform = transform
         self.user_df = user_df  # SHOULD BE TEST SET
 
+        print(user_df)
+
     def __len__(self):
         return len(self.user_df)
 
     def __getitem__(self, idx):
         data = self.user_df.iloc[idx]
-        x1 = self.transform(Image.open(data.path_first).convert("L"))
-        x2 = self.transform(Image.open(data.path_second).convert("L"))
+        x1 = self.transform(Image.open(data.orig).convert("L"))
+        x2 = self.transform(Image.open(data.not_orig).convert("L"))
 
         """
         Uncomment to show image output
