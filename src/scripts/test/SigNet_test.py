@@ -2,6 +2,7 @@ import argparse
 import os
 import pytorch_lightning as pl
 import torchvision.transforms as transforms
+import torch
 
 from torch.utils.data import DataLoader
 from torchvision.transforms import InterpolationMode
@@ -17,7 +18,7 @@ parser.add_argument(
 )
 parser.add_argument(
     "--ckpt-path",
-    default="checkpoints/FINAL_epoch=10-val_loss=0.05998.ckpt",
+    default="checkpoints/base_model.pth",
     type=str,
     help="Path to trained model .ckpt file",
 )
@@ -35,7 +36,11 @@ test_dataloader = DataLoader(
     test_dataset, batch_size=args.batch_size, num_workers=args.num_workers
 )
 
-model = SigNet.load_from_checkpoint(args.ckpt_path)
+# model = SigNet.load_from_checkpoint(args.ckpt_path)
+
+model = SigNet()
+state_dict = torch.load(args.ckpt_path)
+model.load_state_dict(state_dict)
 
 
 model.eval()  # TODO: Pretty sure Trainer.test() sets this already

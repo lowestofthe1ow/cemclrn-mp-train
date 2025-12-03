@@ -20,7 +20,8 @@ from torchvision.transforms import InterpolationMode
 from src.datasets.process.cedar_df import cedar_df
 from src.datasets.UserDataset import UserDataset
 from src.engines.SigNet import SigNet
-from src.utils.transforms.transforms import TRANSFORMS_TRAIN
+from src.utils.transforms.transforms import TRANSFORMS_TRAIN, TRANSFORMS_EVAL
+from sklearn.model_selection import train_test_split
 
 
 TRAIN_STD = 0.2346486747264862
@@ -137,18 +138,17 @@ def finetune(user_id, batch_size=128, num_workers=15):
     pd.set_option("display.width", None)
     pd.set_option("display.max_rows", None)
 
-    user_df = makeDf(14, user_id)
+    user_df = makeDf(2, user_id)
 
-    full_dataset = UserDataset(user_df, TRANSFORMS_TRAIN(stdev=TRAIN_STD))
-
-    train_dataset, val_dataset = torch.utils.data.random_split(
-        full_dataset,
-        [
-            int(0.9 * len(full_dataset)),
-            len(full_dataset) - int(0.9 * len(full_dataset)),
-        ],
-        generator=torch.Generator().manual_seed(339),
+    train_df, val_df = train_test_split(
+        user_df,
+        train_size=int(len(user_df) * 0.9),
+        random_state=339,
+        shuffle=True,
     )
+
+    train_dataset = UserDataset(train_df, TRANSFORMS_TRAIN(stdev=TRAIN_STD))
+    val_dataset = UserDataset(val_df, TRANSFORMS_EVAL(stdev=TRAIN_STD))
 
     train_dataloader = DataLoader(
         train_dataset,
@@ -170,13 +170,15 @@ def finetune(user_id, batch_size=128, num_workers=15):
 
     model = SigNet.load_from_checkpoint(
         "checkpoints/FINAL_epoch=10-val_loss=0.05998.ckpt",
-        learning_rate=1e-4,
-        weight_decay=5e-4,
+        learning_rate=1e-6,
     )
     # model.eval()
 
     for param in model.cnn.features.parameters():
         param.requires_grad = False
+
+    for param in model.cnn.features[14].parameters():
+        param.requires_grad = True
 
     logger = TensorBoardLogger("tb_logs", name="cedar")
 
