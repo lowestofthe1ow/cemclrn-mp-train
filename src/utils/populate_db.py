@@ -62,6 +62,18 @@ def populate_signatures(cursor):
                         """,
                 (user_id, image_path_str, sql_timestamp),
             )
+
+        cursor.execute(
+            """
+                    INSERT IGNORE INTO models (user_id, path, time_added)
+                    VALUES (%s, %s, %s)
+                    """,
+            (
+                user_id,
+                "checkpoints/finetuned/models/user1/model_2025-12-03 11:31:50.913674.pth",
+                sql_timestamp,
+            ),
+        )
         db.commit()
 
 

@@ -125,7 +125,7 @@ def makeDf(repeat, user_id):
     return combined_df
 
 
-def finetune(user_id, batch_size=128, num_workers=15):
+def finetune(user_id, batch_size=32, num_workers=4):
     # Check if correct
     cursor.execute("SELECT COUNT(*) FROM users")
     total_users = cursor.fetchone()[0]

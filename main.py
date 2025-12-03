@@ -11,7 +11,10 @@ from src.utils.transforms.transforms import TRANSFORMS_TRAIN
 from src.engines.inference import inference as inference_run
 from src.scripts.train.SigNet_finetuning import finetune
 
+import multiprocessing
 from multiprocessing import Process
+
+multiprocessing.set_start_method("spawn", force=True)
 
 
 db = sql.connect(
@@ -37,6 +40,19 @@ def create_tables(cursor):
     cursor.execute(
         """
         CREATE TABLE IF NOT EXISTS signatures (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            user_id INT NOT NULL,
+            path VARCHAR(255) NOT NULL,
+            time_added TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id)
+            REFERENCES users(id)
+        )
+        """
+    )
+
+    cursor.execute(
+        """
+        CREATE TABLE IF NOT EXISTS models (
             id INT AUTO_INCREMENT PRIMARY KEY,
             user_id INT NOT NULL,
             path VARCHAR(255) NOT NULL,
@@ -84,6 +100,28 @@ def get_30_most_recent(user_id):
     return [row[0] for row in cursor.fetchall()]
 
 
+def get_model_path(user_id):
+    cursor.execute(
+        "SELECT path FROM models WHERE user_id = %s",
+        (user_id,),
+    )
+    row = cursor.fetchone()
+
+    if row:
+        return row[0]
+    else:
+        return None
+
+
+def count_entries(user_id):
+    cursor.execute(
+        "SELECT COUNT(DISTINCT path) FROM signatures WHERE user_id = %s",
+        (user_id,),
+    )
+    result = cursor.fetchone()
+    return result[0] if result else 0
+
+
 create_tables(cursor)
 app = fa.FastAPI()
 
@@ -122,8 +160,17 @@ async def inference(name: str, new_signature: fa.UploadFile = fa.File(...)):
     with open(file_path, "wb+") as file_object:
         sh.copyfileobj(new_signature.file, file_object)
 
+    model_path = get_model_path(user_id)
+    if model_path:
+        print(f"Found model at {model_path}. Using that for inference")
+    else:
+        print("Defaulting to base model checkpoints/base_model.pth")
+        model_path = "checkpoints/base_model.pth"
+
     total_dist, prediction = inference_run(
-        "checkpoints/base_model.pth", file_path, recent
+        model_path,
+        file_path,
+        recent,
     )
 
     if prediction == 1:
@@ -145,8 +192,12 @@ async def update(name: str, file: fa.UploadFile = fa.File(...)):
     folder = f"data/user_data/{name}"
     os.makedirs(folder, exist_ok=True)
 
+    num_entries = count_entries(user_id)
+
+    _, extension = os.path.splitext(file.filename)
+
     # Saving file to disk
-    file_path = os.path.join(folder, file.filename)
+    file_path = os.path.join(folder, f"{name}_{num_entries + 1}{extension}")
     with open(file_path, "wb") as f:
         sh.copyfileobj(file.file, f)
 
@@ -158,10 +209,9 @@ async def update(name: str, file: fa.UploadFile = fa.File(...)):
     p = Process(target=finetune, args=(user_id,))
     p.start()
 
-    if len(recent) > 30:
-        return {
-            "message": "success",
-        }  # placeholder, fine-tune model based on most recent 30 samples
+    return {
+        "message": "success",
+    }  # placeholder, fine-tune model based on most recent 30 samples
 
 
 def main():

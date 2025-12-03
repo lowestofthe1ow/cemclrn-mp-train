@@ -9,11 +9,16 @@ from torchvision.transforms import InterpolationMode
 from src.utils.transforms.OtsuRemoveNoise import OtsuRemoveNoise
 from src.utils.transforms.CropToBoundingBox import CropToBoundingBox
 
+
+def adjustGamma(img):
+    return F.adjust_gamma(img, 2.5)
+
+
 TRANSFORMS_PRE = transforms.Compose(
     [
         transforms.RandomInvert(p=1.0),
         # TODO: Look into this, gamma of 2.5 is guesswork
-        transforms.Lambda(lambda img: F.adjust_gamma(img, 2.5)),
+        transforms.Lambda(adjustGamma),
         transforms.ToTensor(),
         # transforms.GaussianBlur(5),
         OtsuRemoveNoise(),
@@ -39,7 +44,7 @@ def TRANSFORMS_TRAIN(stdev):
         [
             transforms.RandomInvert(p=1.0),
             # TODO: Look into this, gamma of 2.5 is guesswork
-            transforms.Lambda(lambda img: F.adjust_gamma(img, 2.5)),
+            transforms.Lambda(adjustGamma),
             transforms.RandomPerspective(),
             transforms.ToTensor(),
             # transforms.GaussianBlur(5),
@@ -58,7 +63,7 @@ def TRANSFORMS_EVAL(stdev):
         [
             transforms.RandomInvert(p=1.0),
             # TODO: Look into this, gamma of 2.5 is guesswork
-            transforms.Lambda(lambda img: F.adjust_gamma(img, 2.5)),
+            transforms.Lambda(adjustGamma),
             transforms.ToTensor(),
             # transforms.GaussianBlur(5),
             OtsuRemoveNoise(),
