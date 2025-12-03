@@ -8,6 +8,11 @@ import shutil as sh
 
 from src.utils.transforms.transforms import TRANSFORMS_TRAIN
 
+from src.engines.inference import inference as inference_run
+from src.scripts.train.SigNet_finetuning import finetune
+
+from multiprocessing import Process
+
 
 db = sql.connect(
     host="localhost",  # change if needed
@@ -78,6 +83,7 @@ def get_30_most_recent(user_id):
     )
     return [row[0] for row in cursor.fetchall()]
 
+
 create_tables(cursor)
 app = fa.FastAPI()
 
@@ -112,7 +118,16 @@ async def inference(name: str, new_signature: fa.UploadFile = fa.File(...)):
 
     # This is where model compares but idk if thats done
 
-    return {"Result": "Genuine", "Confidence": 0.91}  # placeholder
+    total_dist, prediction = inference_run(
+        "checkpoints/base_model.pth", new_signature, recent
+    )
+
+    if prediction == 1:
+        prediction = "Genuine"
+    else:
+        prediction = "Forged"
+
+    return {"Result": prediction, "Distance": total_dist}  # placeholder
 
 
 # /update POST (?) - Adds a new signature for a user.
@@ -133,13 +148,15 @@ async def update(name: str, file: fa.UploadFile = fa.File(...)):
 
     # Storing path in database
     add_signature(user_id, file_path)
-    
+
     recent = get_30_most_recent(user_id)
+
+    p = Process(target=finetune, args=(user_id,))
+    p.start()
 
     if len(recent) > 30:
         return {
-            "Status": "Registered",
-            "Signature Count": 67,
+            "message": "success",
         }  # placeholder, fine-tune model based on most recent 30 samples
 
 
