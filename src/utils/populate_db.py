@@ -26,7 +26,7 @@ USER_DATA_PATH = "data/user_data"
 
 
 # Insert user data
-def populate_signatures(cursor):
+def populate_signatures(db, cursor):
     base_dir = Path(USER_DATA_PATH).absolute()
 
     if base_dir.exists():
@@ -46,6 +46,7 @@ def populate_signatures(cursor):
         image_paths.extend(sorted(user_folder.glob("*.jpg")))
         image_paths.extend(sorted(user_folder.glob("*.jpeg")))
 
+        i = 0
         for image_path in image_paths:
             image_path_str = os.path.join(user_folder, image_path)
             # Time the signature was added
@@ -63,26 +64,20 @@ def populate_signatures(cursor):
                 (user_id, image_path_str, sql_timestamp),
             )
 
-        cursor.execute(
-            """
-                    INSERT IGNORE INTO models (user_id, path, time_added)
-                    VALUES (%s, %s, %s)
-                    """,
-            (
-                user_id,
-                "checkpoints/finetuned/models/user1/model_2025-12-03 11:31:50.913674.pth",
-                sql_timestamp,
-            ),
-        )
-        db.commit()
+            i += 1
+            if i >= 15:
+                break
 
-
-if __name__ == "__main__":
-    db = sql.connect(
-        host="localhost",  # change if needed
-        user="root",  # change if needed
-        password="fujita_kotone",  # change if needed
-        database="signatures",  # change if needed
+    cursor.execute(
+        """
+                INSERT IGNORE INTO models (user_id, path, time_added)
+                VALUES (%s, %s, %s)
+                """,
+        (
+            user_id,
+            "checkpoints/finetuned/models/user2/model_2025-12-03 18:07:54.710987.pth",
+            sql_timestamp,
+        ),
     )
-    cursor = db.cursor()
-    populate_signatures(cursor)
+
+    db.commit()

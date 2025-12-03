@@ -21,7 +21,7 @@ parser.add_argument(
 )
 parser.add_argument(
     "--ckpt-path",
-    default="checkpoints/finetuned/models/user1/model_2025-12-03 09:09:38.016142.pth",
+    default="checkpoints/base_model.pth",
     type=str,
     help="Path to trained model .ckpt file",
 )

@@ -1,33 +1,35 @@
-# ==========================================================================================================================================================
-# Stuff Left: Manage file paths and name inputs in routes
-# ==========================================================================================================================================================
-import mysql.connector as sql
 import fastapi as fa
+import multiprocessing
+import mysql.connector as sql
 import os
 import shutil as sh
 
-from src.utils.transforms.transforms import TRANSFORMS_TRAIN
+from dotenv import load_dotenv
+from multiprocessing import Process
 
 from src.engines.inference import inference as inference_run
 from src.scripts.train.SigNet_finetuning import finetune
-
-import multiprocessing
-from multiprocessing import Process
+from src.utils.populate_db import populate_signatures
+from src.utils.transforms.transforms import TRANSFORMS_TRAIN
 
 multiprocessing.set_start_method("spawn", force=True)
 
-
+load_dotenv()
 db = sql.connect(
-    host="localhost",  # change if needed
-    user="root",  # change if needed
-    password="fujita_kotone",  # change if needed
-    database="signatures",  # change if needed
+    host=os.getenv("DB_HOST"),
+    user=os.getenv("DB_USER"),
+    password=os.getenv("DB_PASSWORD"),
+    database=os.getenv("DB_DATABASE"),
 )
 
 cursor = db.cursor()
 
 
 def create_tables(cursor):
+    cursor.execute("DROP TABLE IF EXISTS models;")
+    cursor.execute("DROP TABLE IF EXISTS signatures;")
+    cursor.execute("DROP TABLE IF EXISTS users;")
+
     cursor.execute(
         """
         CREATE TABLE IF NOT EXISTS users (
@@ -91,10 +93,9 @@ def add_signature(user_id, path):
     db.commit()
 
 
-# Get 30 most recent signatures
-def get_30_most_recent(user_id):
+def get_15_most_recent(user_id):
     cursor.execute(
-        "SELECT path FROM signatures WHERE user_id = %s ORDER BY time_added DESC LIMIT 30",
+        "SELECT path FROM signatures WHERE user_id = %s ORDER BY time_added DESC LIMIT 15",
         (user_id,),
     )
     return [row[0] for row in cursor.fetchall()]
@@ -102,7 +103,7 @@ def get_30_most_recent(user_id):
 
 def get_model_path(user_id):
     cursor.execute(
-        "SELECT path FROM models WHERE user_id = %s",
+        "SELECT path FROM models WHERE user_id = %s ORDER BY time_added DESC LIMIT 1",
         (user_id,),
     )
     row = cursor.fetchone()
@@ -122,7 +123,11 @@ def count_entries(user_id):
     return result[0] if result else 0
 
 
+print("Starting server...")
+
 create_tables(cursor)
+populate_signatures(db, cursor)
+
 app = fa.FastAPI()
 
 
@@ -147,18 +152,18 @@ async def register(name: str, files: list[fa.UploadFile] = fa.File(...)):
 
 
 @app.post("/inference")
-async def inference(name: str, new_signature: fa.UploadFile = fa.File(...)):
+async def inference(name: str, file: fa.UploadFile = fa.File(...)):
     user_id = get_user_id(name)
     if not user_id:
         return {"Error": "User not found."}
 
-    recent = get_30_most_recent(user_id)
+    recent = get_15_most_recent(user_id)
 
     # This is where model compares but idk if thats done
 
-    file_path = os.path.join("temp", new_signature.filename)
+    file_path = os.path.join("temp", file.filename)
     with open(file_path, "wb+") as file_object:
-        sh.copyfileobj(new_signature.file, file_object)
+        sh.copyfileobj(file.file, file_object)
 
     model_path = get_model_path(user_id)
     if model_path:
@@ -204,20 +209,12 @@ async def update(name: str, file: fa.UploadFile = fa.File(...)):
     # Storing path in database
     add_signature(user_id, file_path)
 
-    recent = get_30_most_recent(user_id)
+    recent = get_15_most_recent(user_id)
 
-    p = Process(target=finetune, args=(user_id,))
-    p.start()
+    if len(recent) >= 15:
+        p = Process(target=finetune, args=(user_id,))
+        p.start()
 
     return {
         "message": "success",
     }  # placeholder, fine-tune model based on most recent 30 samples
-
-
-def main():
-    print("Hello from cemclrn-mp-train!")
-    # create_tables(cursor) -- MOVED outside main, in line 81
-
-
-if __name__ == "__main__":
-    main()

@@ -8,10 +8,12 @@ import torch
 import torchvision.transforms as transforms
 
 from datetime import datetime
+from dotenv import load_dotenv
 from pathlib import Path
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.loggers import TensorBoardLogger
+from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader
 from torch.utils.data import DataLoader, random_split
 from torch.utils.data import random_split
@@ -21,7 +23,6 @@ from src.datasets.process.cedar_df import cedar_df
 from src.datasets.UserDataset import UserDataset
 from src.engines.SigNet import SigNet
 from src.utils.transforms.transforms import TRANSFORMS_TRAIN, TRANSFORMS_EVAL
-from sklearn.model_selection import train_test_split
 
 
 TRAIN_STD = 0.2346486747264862

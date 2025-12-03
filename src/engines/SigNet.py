@@ -119,21 +119,24 @@ class SigNet(pl.LightningModule):
         FP = (distances <= threshold_d) & (~same_id)
         FN = (distances > threshold_d) & (same_id)
 
+        precision = TP.sum() / (TP.sum() + FP.sum())
+
         true_positive = (distances <= threshold_d) & (same_id)
         true_positive_rate = true_positive.sum().float() / same_id.sum().float()
         true_negative = (distances > threshold_d) & (~same_id)
         true_negative_rate = true_negative.sum().float() / (~same_id).sum().float()
+
+        f1 = (2 * precision * true_positive_rate) / (precision + true_positive_rate)
 
         FAR = FP.sum().float() / (~same_id).sum()
         FRR = FN.sum().float() / same_id.sum()
 
         acc = 0.5 * (true_negative_rate + true_positive_rate)
 
-        if acc > max_acc:
-            max_acc = acc
-            best_threshold_d = threshold_d
-            best_frr = FRR.item()
-            best_far = FAR.item()
+        max_acc = acc
+        best_threshold_d = threshold_d
+        best_frr = FRR.item()
+        best_far = FAR.item()
 
         """
         # Search for an optimal threshold d that separates predicted genuine pairs from predicted forged pairs
@@ -166,6 +169,13 @@ class SigNet(pl.LightningModule):
         self.log("optimal_threshold", best_threshold_d)
         self.log("FRR", best_frr)
         self.log("FAR", best_far)
+
+        self.log("TPR/Recall", true_positive_rate)
+        self.log("TNR", true_negative_rate)
+
+        self.log("Precision", precision)
+
+        self.log("F1", f1)
 
     def configure_optimizers(self):
         # """
