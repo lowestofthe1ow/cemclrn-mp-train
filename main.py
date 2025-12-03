@@ -118,8 +118,12 @@ async def inference(name: str, new_signature: fa.UploadFile = fa.File(...)):
 
     # This is where model compares but idk if thats done
 
+    file_path = os.path.join("temp", new_signature.filename)
+    with open(file_path, "wb+") as file_object:
+        sh.copyfileobj(new_signature.file, file_object)
+
     total_dist, prediction = inference_run(
-        "checkpoints/base_model.pth", new_signature, recent
+        "checkpoints/base_model.pth", file_path, recent
     )
 
     if prediction == 1:
@@ -127,7 +131,7 @@ async def inference(name: str, new_signature: fa.UploadFile = fa.File(...)):
     else:
         prediction = "Forged"
 
-    return {"Result": prediction, "Distance": total_dist}  # placeholder
+    return {"Result": prediction, "Avg. distance": total_dist}  # placeholder
 
 
 # /update POST (?) - Adds a new signature for a user.

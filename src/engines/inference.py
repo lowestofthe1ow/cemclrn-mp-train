@@ -21,7 +21,7 @@ from PIL import Image
 TRAIN_STD = 0.2346486747264862
 
 # Threshold Euclidean distance to separate "genuine" vs. "forged" pairs
-D_THRESHOLD = 0.6017965078353882
+D_THRESHOLD = 0.5
 
 """
 TODO: This currently only checks a pair of images.
@@ -76,7 +76,6 @@ def inference(model_path, x1_path, x2_paths):
     """
 
     x1 = Image.open(x1_path).convert("L")
-    x1.show()  # only for debugging
 
     transform = TRANSFORMS_EVAL(TRAIN_STD)
 
@@ -92,6 +91,9 @@ def inference(model_path, x1_path, x2_paths):
     verdict = 0
     total_dist = 0
 
+    count_vote_genuine = 0
+    count_vote_forged = 0
+
     for x in x2_paths:
 
         x2 = Image.open(x).convert("L")
@@ -105,13 +107,17 @@ def inference(model_path, x1_path, x2_paths):
             prediction = distance <= D_THRESHOLD  # True if genuine pair
 
             if prediction:
-                verdict += 1
+                count_vote_genuine += 1
             else:
-                verdict -= 1
+                count_vote_forged += 1
+
+        print(f"Comparing against {x}: Distance: {distance}")
 
     total_dist /= length
 
-    if verdict > 0:
+    if total_dist <= D_THRESHOLD:
+        prediction = True
+    elif count_vote_genuine > count_vote_forged:
         prediction = True
     else:
         prediction = False
