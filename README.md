@@ -6,9 +6,10 @@
 
 </div>
 
-We propose a hybrid approach to signature verification in an attempt to make the best of the advantages of writer-dependent and writer-independent approaches. Our system utilizes a base model trained for general inference. When users are first enrolled into the system, any queries will use this base model until the system has collected enough signatures, after which it begins to train a fine-tuned copy of the model using the collected data. This fine-tuned model will then be used for further inference and will be re-trained whenever the user uploads signatures.
+> [!NOTE]
+> **This repository contains code for the Python web server** that hosts a basic API for inference, user registration, and fine-tuning. It makes use of The Flutter mobile application can be found [here](https://github.com/lowestofthe1ow/cemclrn-mp). The paper's LaTeX source can be found [here](https://github.com/lowestofthe1ow/cemclrn-mp-report).
 
-**This repository contains code for the Python web server** that hosts a basic API for inference, user registration, and fine-tuning. It makes use of The Flutter mobile application can be found [here](https://github.com/lowestofthe1ow/cemclrn-mp)
+We propose a hybrid approach to signature verification in an attempt to make the best of the advantages of writer-dependent and writer-independent approaches. Our system utilizes a base model trained for general inference. When users are first enrolled into the system, any queries will use this base model until the system has collected enough signatures, after which it begins to train a fine-tuned copy of the model using the collected data. This fine-tuned model will then be used for further inference and will be re-trained whenever the user uploads signatures.
 
 ## Running the server
 
